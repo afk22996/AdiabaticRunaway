@@ -21,7 +21,7 @@ title = "Final Midplane Density"
 xlabel = "Radius"
 ylabel = "Azimutal Angle (rad)"
 
-plt.pcolor(xpos, ypos, density[0]) #taking only the densities at z = 0 (midplane)
+plt.pcolor(xpos, ypos, density[-1]) #taking only the densities at z = 0 (midplane)
 plt.title(title)
 plt.xlabel(xlabel)
 plt.ylabel(ylabel)
