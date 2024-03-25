@@ -26,11 +26,11 @@ def binSearch(vals, left, right, target):
 				right = middle - 1
 
 	if(right >= len(vals)-1): #target was outside of upper bound of array
-		return(len(vals), np.infty)
+		return(len(vals)-1, np.infty)
 
 	else: #target was outside of lower bound of array
 		return(-np.infty,0)
 		
 if __name__ == '__main__':
 	arr = [0,1,2,3,4,6,7]
-	print(binSearch(arr, 0, len(arr), -1))
+	print(binSearch(arr, 0, len(arr), 7))

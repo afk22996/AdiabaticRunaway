@@ -1,93 +1,120 @@
 import numpy as np
 
-
-'''Algorithm to convert between spherical/polar coordinates centered on a star to those centered on a planet. Notable assumption is that the planet and the star lie at the same phi coordinate.
+'''
+Function to transform cartesian coordinates to spherical/polar coordinates
 
 Inputs:
-starCoords - The coordinates of the object of interest in the star-centric coordinate system
-planetCoords - The cooridnates of the planet in the star-centric coordinate system
-dim - Number of dimensions the conversion is in (2 is polar to cartesian, 3 is spherical)
+coords - indexable array representing the cartesian coordinates you want to transform
+dim - dimensions of the transformation (2 = polar, 3 = spherical)
 
 Output:
-Tuple containing r, theta, and phi in the new planet-centric coordinate system
+Tuple containing the radius, polar angle, and azimuthal angle. If dim = 2, phi is set to 0
+'''
+def cartesianToSpherical(coords, dim = 2):
+    x = coords[0]
+    y = coords[1]
+    if(dim > 2):
+        z = coords[2]
+    else:
+        z = 0
+    r = np.sqrt(x**2 + y**2 + z**2)
+    if(y == 0):
+        if x > 0:
+            theta = 0
+        else:
+            theta = -np.pi
+    else:
+        theta = np.arctan2(y,x)
+    phi = np.arccos(z/r)
+    if(theta < 0):
+        theta = 2*np.pi + theta
+    if(dim == 2):
+        return (r,theta)
+    return(r, theta, phi)
 
 '''
-def curvilinearStarToPlanet(starCoords, planetCoords, dim = 3):
-	rStar = starCoords[0]
-	thetaStar = starCoords[1]
+Function to transform spherical/polar coordinates to cartesian coordinates
 
-	rPlanet = planetCoords[0]
-	thetaPlanet = planetCoords[1]
+Inputs:
+coords - indexable array representing the polar/spherical coordinates you want to transform
+dim - dimensions of the transformation (2 = polar, 3 = spherical)
 
-	rPrime = np.sqrt(np.pow(rStar,2) + np.pow(rPlanet,2) - 2*rStar*rPlanet*np.cos(thetaPlanet - thetaStar))
-	thetaPrime = thetaStar-thetaPlanet
-	if(dim == 3):
-		phiStar = starCoords[2]
-		phiPlanet = planetCoords[2]
-		phiPrime = phiStar - phiPlanet
-		return (rPrime, thetaPrime, phiPrime)
-	else:
-		return (rPrime, thetaPrime)
-
-
-'''Algorithm to convert between spherical and cartesian 3D coordinates
-
-Input:
-coords - indexable list of the spherical coordinates (r, theta, phi)
-
-Output - tuple containing cartesian coordinates (x, y, z)'''
-def sphericalToCartesian(coords, dim = 3):
+Output:
+Tuple containing the x, y, and z coordinates at the given polar/spherical point. If dim = 2, z is set to 0
+'''
+def sphericalToCartesian(coords, dim = 2):
 	r = coords[0]
 	theta = coords[1]
 	if(dim > 2):
 		phi = coords[2]
 	else:
-		phi = np.pi
-
+		phi = np.pi/2
 	x = r*np.sin(phi)*np.cos(theta)
 	y = r*np.sin(phi)*np.sin(theta)
 	z = r*np.cos(phi)
-
+	if(dim == 2):
+	    return (x,y)
 	return (x, y, z)
 
-'''Algorithm to transform velocities in a frame of reference centered on a star to the frame of reference of a planet at a known position and with known velocities
+'''
+Function to transform velocities in a spherical/polar basis to a cartesian one. Unlike the coordinate transformations above, this changes the magnitude of each component of the vector, but leaves the overall vector magnitude unchanged.
+This also currently only works for polar transformations, but will be changed to work in 3D as well.
 
 Inputs:
-starSpeed - Indexable object containing the known velocities in the star-centered reference frame
-planetSpeed - Indexable object containing the speed of the planet in the star-centered reference frame
-planetPosition - Indexable object containing the position of the planet in the star-centered refrence frame
-starPosition - Indexable object containing the position of the point of interest in the star-centered reference frame
+coords - indexable array representing the polar/spherical coordinates you want to transform the velocities at
+velocities - the polar/spherical velocities which you would like to transform
+dim - dimensions of the transformation (2 = polar, 3 = spherical). Currently unused but will be added soon
 
 Output:
-Tuple containing the transformed velocities in 3D'''
-def sphericalStarToPlanetVelocity(starSpeed, planetSpeed, planetPosition, starPosition, dim = 3):
-	rPrime = sphericalStarToPlanet(starPosition, planetPosition)[0]
+Tuple containing the x and y velocities
+'''
+def sphericalToCartesianVelocity(coords, velocities, dim = 2):
+	r = coords[0]
+	theta = coords[1]
+	vr = velocities[0]
+	vtheta = velocities[1]
 
-	rStar = starPosition[0]
-	thetaStar = starPosition[1]
+	vx = vr*np.cos(theta) - vtheta*r*np.sin(theta)
+	vy = vr*np.sin(theta) + vtheta*r*np.cos(theta)
 
-	vRStar = starSpeeds[0]
-	vThetaStar = starSpeeds[1]
-	
+	return (vx, vy)
 
-	rPlanet = planetPosition[0]
-	thetaPlanet = planetPosition[1]
+'''
+Function to transform velocities in a  cartesian basis to a spherical/polar one. Unlike the coordinate transformations above, this changes the magnitude of each component of the vector, but leaves the overall vector magnitude unchanged.
+This also currently only works for polar transformations, but will be changed to work in 3D as well.
 
-	vRPlanet = planetSpeed[0]
-	vThetaPlanet = planetSpeed[1]
-	
+Inputs:
+coords - indexable array representing the cartesian coordinates you want to transform the velocities at
+velocities - the cartesian velocities which you would like to transform
+dim - dimensions of the transformation (2 = polar, 3 = spherical). Currently unused but will be added soon
 
-	if(dim > 2):
-		vPhiStar = starSpeeds[2]
-		vPhiPlanet = planetSpeed[2]
+Output:
+Tuple containing the radial and angular velocities
+'''
+def cartesianToSphericalVelocity(coords, velocities, dim = 2):
+	x = coords[0]
+	y = coords[1]
+	vx = velocities[0]
+	vy = velocities[1]
+	if(x == 0 and y == 0):
+	    return (0,0)
+	vr = (x*vx + y*vy)/np.sqrt(x**2 + y**2)
+	vtheta = (x*vy - y*vx)/(x**2 + y**2)
 
-	else:
-		vPhiStar = 0
-		vPhiPlanet = 0
+	return (vr, vtheta)
 
 
-	vRPrime = (rStar - rPlanet*np.cos(thetaPlanet - thetaStar))*vRStar/rPrime + rStar*rPlanet*np.sin(thetaPlanet - thetaStar)*(vThetaPlanet - vThetaStar)/rPrime
-	vThetaPrime = vThetaPlanet - vThetaStar
-	vPhiPrime = vPhiPlanet - vPhiStar
-
-	return (vRPrime, vThetaPrime, vPhiPrime)
+#Testing
+if __name__ == '__main__':
+	from random import random
+	from matplotlib import pyplot as plt
+	differences = []
+	for i in range(10000):
+	    initial = (10*random(), 2*np.pi*random())
+	    initialv = (10*random(), 2*np.pi*random())
+	    polar = cartesianToSpherical(initial, dim = 2)
+	    polarv = cartesianToSphericalVelocity(initial, initialv, dim=2)
+	    finalv = sphericalToCartesianVelocity(polar, polarv, dim=2)
+	    differences.append(np.sqrt((finalv[0] - initialv[0])**2 + (finalv[1] - initialv[1])**2))
+	plt.plot(differences)
+	plt.show()
