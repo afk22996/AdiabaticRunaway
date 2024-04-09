@@ -58,26 +58,34 @@ def sphericalToCartesian(coords, dim = 2):
 
 '''
 Function to transform velocities in a spherical/polar basis to a cartesian one. Unlike the coordinate transformations above, this changes the magnitude of each component of the vector, but leaves the overall vector magnitude unchanged.
-This also currently only works for polar transformations, but will be changed to work in 3D as well.
 
 Inputs:
 coords - indexable array representing the polar/spherical coordinates you want to transform the velocities at
 velocities - the polar/spherical velocities which you would like to transform
-dim - dimensions of the transformation (2 = polar, 3 = spherical). Currently unused but will be added soon
+dim - dimensions of the transformation (2 = polar, 3 = spherical).
 
 Output:
 Tuple containing the x and y velocities
 '''
 def sphericalToCartesianVelocity(coords, velocities, dim = 2):
-	r = coords[0]
-	theta = coords[1]
-	vr = velocities[0]
-	vtheta = velocities[1]
+    r = coords[0]
+    vr = velocities[0]
+    phi = coords[1]
+    vphi = velocities[1]
+    if(dim > 2):
+        theta = coords[2]
+        vtheta = velocities[2]
+    else:
+        theta = np.pi/2
+        vtheta = 0
 
-	vx = vr*np.cos(theta) - vtheta*r*np.sin(theta)
-	vy = vr*np.sin(theta) + vtheta*r*np.cos(theta)
+    vx = vr*np.sin(theta)*np.cos(phi) + r*vtheta*np.cos(theta)*np.cos(phi) - r*vphi*np.sin(theta)*np.sin(phi)
+    vy = vr*np.sin(theta)*np.sin(phi) + r*vtheta*np.cos(theta)*np.sin(phi) + r*vphi*np.sin(theta)*np.cos(phi)
+    vz = vr*np.cos(theta) - r*theta*np.sin(theta)
+    if(dim > 2):
+        return(vx, vy, vz)
 
-	return (vx, vy)
+    return (vx, vy)
 
 '''
 Function to transform velocities in a  cartesian basis to a spherical/polar one. Unlike the coordinate transformations above, this changes the magnitude of each component of the vector, but leaves the overall vector magnitude unchanged.
@@ -92,16 +100,25 @@ Output:
 Tuple containing the radial and angular velocities
 '''
 def cartesianToSphericalVelocity(coords, velocities, dim = 2):
-	x = coords[0]
-	y = coords[1]
-	vx = velocities[0]
-	vy = velocities[1]
-	if(x == 0 and y == 0):
-	    return (0,0)
-	vr = (x*vx + y*vy)/np.sqrt(x**2 + y**2)
-	vtheta = (x*vy - y*vx)/(x**2 + y**2)
-
-	return (vr, vtheta)
+    x = coords[0]
+    y = coords[1]
+    vx = velocities[0]
+    vy = velocities[1]
+    if(dim > 2):
+        z = coords[2]
+        vz = velocities[2]
+    else:
+        z = 0
+        vz = 0
+    r = np.sqrt(x**2 + y**2 + z**2)
+    if(r == 0):
+        return (0,0,0)
+    vr = (x*vx + y*vy + z*vz)/r
+    vphi = (x*vy - y*vx)/(x**2 + y**2)
+    vtheta = (z*(x*vx + y*vy) - (x**2 + y**2)*vz)/(r**2*np.sqrt(x**2 + y**2))
+    if(dim > 2):
+        return (vr, vphi, vtheta)
+    return (vr, vphi)
 
 
 #Testing
