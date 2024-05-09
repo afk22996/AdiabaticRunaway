@@ -74,56 +74,57 @@ def cartDensity(x, y, xVals, yVals, dens):
     den = biInterpolate(targetCoords, squareVals, minCoords, maxCoords)
     return den
 
-#Loading density data
-xres = 384
-yres = 768
-filepath = "/home/afkirby/penguinPlots/2DGammaChange/"
-gam10data = load_2D_data("/scratch/afkirby/2DAdiabaticParameterChange/Gamma1.0/", xres, yres, "h50_1p1J_e0_PPM4", 100)
-
-#Creating cartesian grid/defining planet position in both coordinate systems
-coordX = np.ndarray(1001)
-coordY = np.ndarray(1001)
-planetCoords = (1, np.pi)
-planetCoordsCart = geo.sphericalToCartesian(planetCoords, dim = 2)
-
-#Populating Cartesian Grid
-for i in range(1001):
-    coordX[i] = -gam10data[1][-1] + 2*gam10data[1][-1]*(i)/1000
-    
-for j in range(1001):
-    coordY[j] = -gam10data[1][-1] + 2*gam10data[1][-1]*(j)/1000
-
-#Interpolating over polar array to find data for cartesian coordinates
-gam10denCart = np.ndarray((1001,1001))
-for i in range(1001):
-    for j in range(1001):
-        cartesian = (coordX[i], coordY[j])
-        polar = geo.cartesianToSpherical(cartesian, 2)
-        gam10denCart[j,i] = density(polar[0], polar[1], gam10data)
-
-#Shifting Cartesian Grid to be planet-centric
-for i in range(1001):
-    coordX[i] = coordX[i] - planetCoordsCart[0]
-    coordY[i] = coordY[i] - planetCoordsCart[1]
-
-#Creating planet-centric polar grid
-gam10denplanet = np.ndarray((xres, yres))
-planetR = np.ndarray(xres+1)
-planetTheta = np.ndarray(yres+1)
-for i in range(xres+1):
-    planetR[i] = 2.7*i/(xres)
-for j in range(yres+1):
-    planetTheta[j] = 2*np.pi*j/(yres)
-
-#Interpolating over cartesian grid to find data for the new, planet-centric, polar grid
-for i in range(xres):
-    for j in range(yres):
-        polar = (planetR[i], planetTheta[j])
-        cartesian = geo.sphericalToCartesian(polar, 2)
-        gam10denplanet[i,j] = cartDensity(cartesian[0], cartesian[1], coordX, coordY, gam10denCart)
-        
-#Plotting
 if __name__ == "__main__":
+    #Loading density data
+    xres = 384
+    yres = 768
+    filepath = "/home/afkirby/penguinPlots/2DGammaChange/"
+    gam10data = load_2D_data("/scratch/afkirby/2DAdiabaticParameterChange/Gamma1.0/", xres, yres, "h50_1p1J_e0_PPM4", 100)
+
+    #Creating cartesian grid/defining planet position in both coordinate systems
+    coordX = np.ndarray(1001)
+    coordY = np.ndarray(1001)
+    planetCoords = (1, np.pi)
+    planetCoordsCart = geo.sphericalToCartesian(planetCoords, dim = 2)
+
+    #Populating Cartesian Grid
+    for i in range(1001):
+        coordX[i] = -gam10data[1][-1] + 2*gam10data[1][-1]*(i)/1000
+
+    for j in range(1001):
+        coordY[j] = -gam10data[1][-1] + 2*gam10data[1][-1]*(j)/1000
+
+    #Interpolating over polar array to find data for cartesian coordinates
+    gam10denCart = np.ndarray((1001,1001))
+    for i in range(1001):
+        for j in range(1001):
+            cartesian = (coordX[i], coordY[j])
+            polar = geo.cartesianToSpherical(cartesian, 2)
+            gam10denCart[j,i] = density(polar[0], polar[1], gam10data)
+
+    #Shifting Cartesian Grid to be planet-centric
+    for i in range(1001):
+        coordX[i] = coordX[i] - planetCoordsCart[0]
+        coordY[i] = coordY[i] - planetCoordsCart[1]
+
+    #Creating planet-centric polar grid
+    gam10denplanet = np.ndarray((xres, yres))
+    planetR = np.ndarray(xres+1)
+    planetTheta = np.ndarray(yres+1)
+    for i in range(xres+1):
+        planetR[i] = 2.7*i/(xres)
+    for j in range(yres+1):
+        planetTheta[j] = 2*np.pi*j/(yres)
+
+    #Interpolating over cartesian grid to find data for the new, planet-centric, polar grid
+    for i in range(xres):
+        for j in range(yres):
+            polar = (planetR[i], planetTheta[j])
+            cartesian = geo.sphericalToCartesian(polar, 2)
+            gam10denplanet[i,j] = cartDensity(cartesian[0], cartesian[1], coordX, coordY, gam10denCart)
+
+    #Plotting
+
     plt.figure()
     plt.pcolor(planetTheta, planetR, gam10denplanet)
     plt.title("Final Planet-Centric Isothermal Density")

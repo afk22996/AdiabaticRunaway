@@ -25,7 +25,7 @@ def binSearch(vals, left, right, target):
 			else: #guess was too high
 				right = middle - 1
 
-	if(right >= len(vals)-1): #target was outside of upper bound of array
+	if(right > len(vals)-1): #target was outside of upper bound of array
 		return(len(vals)-1, np.infty)
 
 	else: #target was outside of lower bound of array

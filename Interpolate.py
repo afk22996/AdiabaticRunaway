@@ -115,39 +115,60 @@ def triInterpolate(targetCoords, cubeVals, minCoords, maxCoords):
 	c = c0*(1-zd) + c1*zd
 	return c
 
+def linInterpolate(x, minPosition, maxPosition, minData, maxData):
+    y0 = minData
+    y1 = maxData
+    x0 = minPosition
+    x1 = maxPosition
+    if(x1 == x0):
+        return y0
+    y = y0 + (x - x0)*(y1 - y0)/(x1 - x0)
+    return y
+    
+def findZero(left, right, dataleft, dataright, tolerance = 1e-12):
+    if(np.sign(dataleft) == np.sign(dataright)):
+        raise Exception("The root does not exist")
+    if(abs(dataleft) < tolerance):
+        return left
+    elif(abs(dataright) < tolerance):
+        return right
+    m = left
+    datam = dataleft
+    while datam >= tolerance:
+        m = (left+right)/2
+        datam = linInterpolate(m, left, right, dataleft, dataright)
+        if(np.sign(datam) == np.sign(dataleft)):
+            left = m
+            dataleft = datam
+        else:
+            right = m
+            dataright = datam
+    return m
+    
+
 #Testing
 if __name__ == '__main__':
-	def f(x,y,z):
-		return x**2 + y**2 + z**2
+	def f(x):
+		return x**3
 
-	targetCoords = (1.5, 1.5, 1.5)
+	targetCoord = 0
 	x = []
 	y = []
-	for i in range(0, 1000000):
-		cubeVals = np.ndarray(8)
-		low = 1.5 - (i+1)/1000000
-		high = 1.5 + (i+1)/1000000
-		cubeVals[0] = f(low,low,low)
-		cubeVals[1] = f(low,low,high)
-		cubeVals[2] = f(low,high,low)
-		cubeVals[3] = f(low,high,high)
-		cubeVals[4] = f(high,low,low)
-		cubeVals[5] = f(high,low,high)
-		cubeVals[6] = f(high,high,low)
-		cubeVals[7] = f(high,high,high)
+	for i in range(0, 100):
+		low = targetCoord - (i+1)/100
+		high = targetCoord + (i+1)/100
+		mindata = f(low)
+		maxdata = f(high)
 
-		minCoords = (1,1,1)
-		maxCoords = (2,2,2)
-
-		interpolate = triInterpolate(targetCoords, cubeVals, minCoords, maxCoords)
-		actual = f(1.5,1.5,1.5)
-		relerr = abs(actual-interpolate)/actual
+		zero = findZero(low, high, mindata, maxdata)
+		actual = 0
+		relerr = abs(actual-zero)
 		x.append(high-low)
 		y.append(relerr)
 	plt.plot(x, y)
 	plt.xlabel("Grid Size")
-	plt.ylabel("Relative Error")
-	plt.title("Trilinear Interpolation Error")
+	plt.ylabel("Error")
+	plt.title("Zero-Finding Error")
 	plt.xscale("log")
 	plt.yscale("log")
 	plt.show()
