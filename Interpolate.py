@@ -1,5 +1,59 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from Search import *
+
+'''Algorithm to interpolate 3D data with a spherical boundary condition assumed which is periodic in Y and mirrored in Z
+
+inputs:
+xVals - array of radial cell centers
+yVals - array of azimuthal cell centers
+zVals - array of polar cell centers
+data - data over which to interpolate (Note: NOT default penguin data, should be a 3D array of data containing whatever quantity you're interested in)
+r - indexable object which gives the radial, azimuthal, and polar positions at which you want the interpolated data
+
+output:
+Interpolated data at the point of interest (returns 0 if outside of the proper z-range)'''
+def interpolate3DSpherical(xVals, yVals, zVals, data, r):
+    x1 = r[0] #X Position
+    x2 = r[1] #Y Position
+    if(x2 < 0):
+        x2 = x2%(2*np.pi) + 2*np.pi
+    x3 = r[2] #Z Position
+    
+    xPoints = binSearch(xVals, 0, len(xVals), x1)
+    yPoints = binSearch(yVals, 0, len(yVals), x2)
+    zPoints = binSearch(zVals, 0, len(zVals), x3)
+    if(xPoints[0] == -np.infty):
+        return 0
+    elif(xPoints[1] == np.infty):
+        return 0
+    if(yPoints[0] == -np.infty):
+        yPoints = (len(yVals)-1, 0)
+    elif(yPoints[1] == np.infty):
+        yPoints = (0, len(yVals)-1)
+    if(zPoints[1] == np.infty):
+        if x3 > np.pi/2:
+            zPoints = binSearch(zVals, 0, len(zVals), np.pi/2 - x3%(np.pi/2))
+            if(zPoints[0] == -np.infty):
+                return 0
+            if(zPoints[1] == np.infty):
+                return 0
+        else:
+            zPoints = (-1, -1)
+    if(zPoints[0] == -np.infty):
+        return 0
+    lowx = xPoints[0]
+    highx = xPoints[1]
+    lowy = yPoints[0]
+    highy = yPoints[1]
+    lowz = zPoints[0]
+    highz = zPoints[1]
+    
+    targetCoords = (x1,x2,x3)
+    minCoords = (xVals[lowx], yVals[lowy], zVals[lowz])
+    maxCoords = (xVals[highx], yVals[highy], zVals[highz])
+    cubeVals = [data[lowz,lowy,lowx], data[highz,lowy,lowx], data[lowz,highy,lowx], data[highz,highy,lowx], data[lowz,lowy,highx], data[highz, lowy, highx], data[lowz, highy, highx], data[highz, highy, highx]]
+    return triInterpolate(targetCoords, cubeVals, minCoords, maxCoords)
 
 '''
 Function which performs a linear interpolation over 2D data given a target coordinate and the values at the grid. This is a 2nd order approximation, and so falls off like d^-2, where d is the distance between lattice points

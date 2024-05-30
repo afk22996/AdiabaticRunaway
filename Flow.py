@@ -83,7 +83,7 @@ def flowLine2D(xi, yi, Xs, Ys, maxerror, fun):
     n = 0
     aveCellX = (xf - xi)/len(Xs)
     aveCellY = (yf - yi)/len(Ys)
-    while(abs(y0[0]) < xf and abs(y0[1]) < yf and n < 20000):
+    while(abs(y0[0]) < xf and abs(y0[1]) < yf):
         correction = RK45step(y0, y0[0], xf, h, maxerror, fun)
         if(abs(correction[0][0]) <= 0.01*aveCellX and abs(correction[0][1]) <= 0.01*aveCellY):
             break
@@ -95,7 +95,7 @@ def flowLine2D(xi, yi, Xs, Ys, maxerror, fun):
     y0 = np.array([xi, yi])
     h = abs(xf-xi)
     n = 0
-    while(abs(y0[0]) < xf and abs(y0[1]) < yf and n < 20000):
+    while(abs(y0[0]) < xf and abs(y0[1]) < yf):
         correction = RK45step(y0, y0[0], xf, h, maxerror, fun)
         if(abs(correction[0][0]) <= 0.01*aveCellX and abs(correction[0][1]) <= 0.01*aveCellY):
             break
@@ -133,7 +133,7 @@ def flowLine3D(xi, yi, zi, Xs, Ys, Zs, maxerror, fun, maxstep):
     xf = np.max(np.abs(Xs))
     yf = np.max(np.abs(Ys))
     zf = np.max(np.abs(Zs))
-    h = abs(xf-xi)/10000
+    h = abs(xf-xi)/100
     zs.append(zi)
     xs.append(xi)
     ys.append(yi)
@@ -141,9 +141,9 @@ def flowLine3D(xi, yi, zi, Xs, Ys, Zs, maxerror, fun, maxstep):
     aveCellX = abs(xf - xi)/len(Xs)
     aveCellY = abs(yf - yi)/len(Ys)
     aveCellZ = abs(zf - zi)/len(Zs)
-    while(abs(y0[0]) <= abs(xf) and abs(y0[1]) <= abs(yf) and abs(y0[2]) <= abs(zf) and n < 20000):
+    while(abs(y0[0]) <= abs(xf) and abs(y0[1]) <= abs(yf) and abs(y0[2]) <= abs(zf)):
         correction = RK45step(y0, y0[0], xf, h, maxerror, fun)
-        if(abs(correction[0][0]) <= 0.001*aveCellX and abs(correction[0][1]) <= 0.001*aveCellY and abs(correction[0][2]) <= 0.001*aveCellZ):
+        if(abs(correction[0][0]) <= 0.0001*aveCellX and abs(correction[0][1]) <= 0.0001*aveCellY and abs(correction[0][2]) <= 0.0001*aveCellZ):
             break
         y0 = y0 + correction[0]
         zs.append(y0[2])
@@ -155,11 +155,11 @@ def flowLine3D(xi, yi, zi, Xs, Ys, Zs, maxerror, fun, maxstep):
         n = n+1
 
     y0 = np.array([xi, yi, zi])
-    h = abs(xf-xi)
+    h = abs(xf-xi)/100
     n = 0
-    while(abs(y0[0]) <= abs(xf) and abs(y0[1]) <= abs(yf) and abs(y0[2]) <= abs(zf) and n < 20000):
+    while(abs(y0[0]) <= abs(xf) and abs(y0[1]) <= abs(yf) and abs(y0[2]) <= abs(zf)):
         correction = RK45step(y0, y0[0], xf, h, maxerror, fun)
-        if(abs(correction[0][0]) <= 0.001*aveCellX and abs(correction[0][1]) <= 0.001*aveCellY and abs(correction[0][2]) <= 0.001*aveCellZ):
+        if(abs(correction[0][0]) <= 0.0001*aveCellX and abs(correction[0][1]) <= 0.0001*aveCellY and abs(correction[0][2]) <= 0.0001*aveCellZ):
             break
         y0 = y0 - correction[0]
         zs.insert(0, y0[2])
