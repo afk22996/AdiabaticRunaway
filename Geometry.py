@@ -28,6 +28,8 @@ def cartesianToSpherical(coords, dim = 2):
     phi = np.arccos(z/r)
     if(theta < 0):
         theta = 2*np.pi + theta
+    if(r <= 1e-10):
+        r = theta = phi = 0
     if(dim == 2):
         return (r,theta)
     return(r, theta, phi)

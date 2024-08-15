@@ -20,7 +20,7 @@ def interpolate3DSpherical(xVals, yVals, zVals, data, r):
         x2 = x2%(2*np.pi) + 2*np.pi
     x3 = r[2] #Z Position
     if(x3 > np.pi or x3 < 0):
-        return 0
+    	return 0
     
     xPoints = binSearch(xVals, 0, len(xVals), x1)
     yPoints = binSearch(yVals, 0, len(yVals), x2)
@@ -45,7 +45,6 @@ def interpolate3DSpherical(xVals, yVals, zVals, data, r):
             zPoints = (-1, -1)
     if(zPoints[0] == -np.infty):
         return 0
-
     lowx = xPoints[0]
     highx = xPoints[1]
     lowy = yPoints[0]

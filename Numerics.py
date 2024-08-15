@@ -1,6 +1,88 @@
 import numpy as np
-from matplotlib import pyplot as plt
-from Search import *
+'''Algorithm to numerically differentiate a function using the finite difference method'''
+def finDiff(fun, x0, h):
+	return (fun(x0-2*h) - 8*fun(x0-h) + 8*fun(x0 + h) - fun(x0+2*h))/(12*h)
+
+'''Algorithm to find the approximate root of a function using the Newton-Raphson method'''
+def NR(fun, x0, tol, h):
+    if(abs(fun(x0)) < tol):
+        return x0
+    else:
+        x = x0 - fun(x0)/finDiff(fun, x0, h)
+        return NR(fun, x, tol,h)
+    
+'''
+Algorithm which performs one step in the solution of a system of 1st order ODES to a 5th order approximation, with an adaptive time-step
+
+Inputs:
+y0 - Initial conditions (iterable)
+xi - Initial position
+xf - Final position
+maxstep - The largest time step that the algorithm will take, regardless of error calculation
+maxerror - Approximate error to be achieved by the solution
+fun - function which returns the derivatives of the variables of interest
+
+Returns:
+fifth - fifth order solution to the differential equation
+error - approximate error in the solution
+h - The step size used for this step
+hnew - Calculated ideal step size to maintain error budget while also prioritizing speed
+'''
+def RK5Step(y0, xi, xf, maxstep, maxerror, fun):
+    h = maxstep
+    x = xi
+    #Calculating k's
+    k1 = h*fun(x, y0)
+    k2 = h*fun(x+h/4, y0+k1/4)
+    k3 = h*fun(x+3*h/8, y0+3*k1/32+9*k2/32)
+    k4 = h*fun(x+12*h/13, y0+1932*k1/2197 - 7200*k2/2197 + 7296*k3/2197)
+    k5 = h*fun(x+h, y0 + 439.0*k1/216.0 - 8.0*k2 + 3680*k3/513.0 - 845.0*k4/4104.0)
+    k6 = h*fun(x+h/2, y0 - 8.0*k1/27.0 + 2.0*k2 - 3544.0*k3/2565.0 + 1859.0*k4/4104.0 - 11.0*k5/40.0)
+    
+    fifth = (16.0*k1/135.0 + 6656.0*k3/12825.0 + 28561.0*k4/56430.0 - 9.0*k5/50.0 + 2.0*k6/55.0)
+
+    return [fifth, h]
+
+'''Function to return the approximate integral of data represented by an array (must have an odd number of elements to be accurate)
+
+Inputs:
+func - array representing function data
+h - interval over which the integral is to be evaluated
+'''
+def Simpson(func,h):
+    return (h/3.0)*(np.sum(func)+np.sum(func[1:-1])+2.0*np.sum(func[1::2]))
+
+'''Modified binary search which returns a tuple of the two indices between which the target value should lie between. If the value is in the list, the returned tuple contains duplicate values with both being the index of the target value. If the value is outside of the bounds of the list, a tuple containing either positive or negative infinities is used where the other value is unknown to commmunicate that uncertainty'''
+def binSearch(vals, left, right, target):
+    while left < right:
+        middle = left + (right - left)//2
+        if(middle >= len(vals)-1):
+            break
+
+        if(vals[middle] == target): #target value is in array
+            return (middle, middle)
+        elif(vals[middle + 1] == target):
+            return (middle + 1, middle + 1)
+        elif(vals[middle - 1] == target):
+            return (middle - 1, middle - 1)
+        elif(vals[middle +1] > target and vals[middle] < target): #correct guess with the next value being the upper bound
+            return (middle, middle+1)
+
+        elif(vals[middle-1] < target and vals[middle] > target): #correct value with the previous value being the lower bound
+            return (middle-1, middle)
+
+        else:
+            if(vals[middle] < target): #guess was too low
+                left = middle + 1
+
+            else: #guess was too high
+                right = middle - 1
+
+    if(right > len(vals)-1): #target was outside of upper bound of array
+        return(len(vals)-1, np.infty)
+
+    else: #target was outside of lower bound of array
+        return(-np.infty,0)
 
 '''Algorithm to interpolate 3D data with a spherical boundary condition assumed which is periodic in Y and mirrored in Z
 
@@ -20,7 +102,7 @@ def interpolate3DSpherical(xVals, yVals, zVals, data, r):
         x2 = x2%(2*np.pi) + 2*np.pi
     x3 = r[2] #Z Position
     if(x3 > np.pi or x3 < 0):
-        return 0
+    	return 0
     
     xPoints = binSearch(xVals, 0, len(xVals), x1)
     yPoints = binSearch(yVals, 0, len(yVals), x2)
@@ -45,7 +127,6 @@ def interpolate3DSpherical(xVals, yVals, zVals, data, r):
             zPoints = (-1, -1)
     if(zPoints[0] == -np.infty):
         return 0
-
     lowx = xPoints[0]
     highx = xPoints[1]
     lowy = yPoints[0]
@@ -180,54 +261,11 @@ def linInterpolate(x, minPosition, maxPosition, minData, maxData):
         return y0
     y = y0 + (x - x0)*(y1 - y0)/(x1 - x0)
     return y
-    
-def findZero(left, right, dataleft, dataright, tolerance = 1e-12):
-    if(np.sign(dataleft) == np.sign(dataright)):
-        raise Exception("The root does not exist")
-    if(abs(dataleft) < tolerance):
-        return left
-    elif(abs(dataright) < tolerance):
-        return right
-    m = left
-    datam = dataleft
-    while datam >= tolerance:
-        m = (left+right)/2
-        datam = linInterpolate(m, left, right, dataleft, dataright)
-        if(np.sign(datam) == np.sign(dataleft)):
-            left = m
-            dataleft = datam
-        else:
-            right = m
-            dataright = datam
-    return m
-    
 
-#Testing
+
 if __name__ == '__main__':
-	def f(x):
-		return x**3
-
-	targetCoord = 0
-	x = []
-	y = []
-	for i in range(0, 100):
-		low = targetCoord - (i+1)/100
-		high = targetCoord + (i+1)/100
-		mindata = f(low)
-		maxdata = f(high)
-
-		zero = findZero(low, high, mindata, maxdata)
-		actual = 0
-		relerr = abs(actual-zero)
-		x.append(high-low)
-		y.append(relerr)
-	plt.plot(x, y)
-	plt.xlabel("Grid Size")
-	plt.ylabel("Error")
-	plt.title("Zero-Finding Error")
-	plt.xscale("log")
-	plt.yscale("log")
-	plt.show()
-	'''print("Interpolation: " + str(interpolate))
-	print("Actual Value: " + str(actual))
-	print("Relative Error: " + str(abs(actual-interpolate)/actual))'''
+    def fun(x, y):
+        return np.array([-np.sin(y[0]), y[1]])
+    
+    y0 = [0.1, 0.2]
+    print(RK5step(y0, 0, 100, 0.1, 1e-8, fun))

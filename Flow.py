@@ -1,59 +1,62 @@
 import numpy as np
+import Geometry as geo
+from Numerics import RK5Step, binSearch
 
-'''
-Algorithm which performs one step in the solution of a system of 1st order ODES to a 5th order approximation, with an adaptive time-step
-
-Inputs:
-y0 - Initial conditions (iterable)
-xi - Initial position
-xf - Final position
-maxstep - The largest time step that the algorithm will take, regardless of error calculation
-maxerror - Approximate error to be achieved by the solution
-fun - function which returns the derivatives of the variables of interest
-
-Returns:
-fifth - fifth order solution to the differential equation
-error - approximate error in the solution
-h - The step size used for this step
-hnew - Calculated ideal step size to maintain error budget while also prioritizing speed
-'''
-def RK45step(y0, xi, xf, maxstep, maxerror, fun):
-    h = maxstep
-    x = xi
-    while(True):
-        #Calculating k's
-        k1 = h*fun(x, y0)
-        k2 = h*fun(x+h/4, y0+k1/4)
-        k3 = h*fun(x+3*h/8, y0+3*k1/32+9*k2/32)
-        k4 = h*fun(x+12*h/13, y0+1932*k1/2197 - 7200*k2/2197 + 7296*k3/2197)
-        k5 = h*fun(x+h, y0 + 439.0*k1/216.0 - 8.0*k2 + 3680*k3/513.0 - 845.0*k4/4104.0)
-        k6 = h*fun(x+h/2, y0 - 8.0*k1/27.0 + 2.0*k2 - 3544.0*k3/2565.0 + 1859.0*k4/4104.0 - 11.0*k5/40.0)
-
-        #Calculating 5th order approximation and estimated error
-        fourth = (25.0*k1/216.0 + 1408*k3/2565.0 + 2197.0*k4/4104.0 - k5/5.0)
-        fifth = (16.0*k1/135.0 + 6656.0*k3/12825.0 + 28561.0*k4/56430.0 - 9.0*k5/50.0 + 2.0*k6/55.0)
-
-        error = (fourth - fifth)/h
-        for l in range(len(error)):
-            if(error[l] < 0):
-                error[l] = -error[l]
-
-        #Finding relative error and adapting step size
-        estError = 0
-        for i in range(len(error)):
-            estError += pow(error[i], 2)
-        estError = estError**(1/2)
-
-        if(estError > maxerror):
-            h = h*0.9*pow(maxerror/estError, 0.2)
-            continue
-
-        if(estError <= maxerror):
-            hnew = 1.1*h
-            if(h > maxstep):
-                hnew = maxstep
-            break
-    return [fifth, error, h, hnew]
+def findH(r, fun, coordX, coordY, coordZ, direction):
+    x = r[0]
+    y = r[1]
+    z = r[2]
+    
+    vx, vy, vz = fun(x, r)
+    xPoints = binSearch(coordX, 0, len(coordX), x)
+    yPoints = binSearch(coordY, 0, len(coordY), y)
+    zPoints = binSearch(coordZ, 0, len(coordZ), z)
+    if(xPoints[0] == -np.infty):
+        return 0
+    elif(xPoints[1] == np.infty):
+        return 0
+    if(yPoints[0] == -np.infty):
+        yPoints = (len(coordY)-1, 0)
+    elif(yPoints[1] == np.infty):
+        yPoints = (0, len(coordY)-1)
+    if(zPoints[1] == np.infty):
+        if z > np.pi/2:
+            z = np.pi - z
+            zPoints = binSearch(coordZ, 0, len(coordZ), z)
+            if(zPoints[0] == -np.infty):
+                return 0
+            if(zPoints[1] == np.infty):
+                return 0
+        else:
+            zPoints = (-1, -1)
+    if(zPoints[0] == -np.infty):
+        return 0
+    xp = xPoints[direction]
+    yp = yPoints[direction]
+    zp = zPoints[direction]
+    if(vx != 0):
+        hx = abs(coordX[xp] - x)/vx
+    else:
+        hx = np.infty
+    if(vy != 0):
+        hy = abs(coordY[yp] - y)/vy
+    else:
+        hy = np.infty
+    if(vz != 0):
+        hz = abs(coordZ[zp] - z)/vz
+    else:
+        hz = np.infty
+    if(hx == 0 and hy == 0 and hz == 0):
+        return 0
+    if(hx == 0):
+        hx = np.infty
+    if(hy == 0):
+        hy = np.infty
+    if(hz == 0):
+        hz = np.infty
+    h = min(abs(hx), abs(hy), abs(hz))
+    return h
+    
 
 '''
 Algorithm to return the flow line of a particle in a 2d velocity vector field
@@ -84,8 +87,10 @@ def flowLine2D(xi, yi, Xs, Ys, maxerror, fun):
     aveCellX = (xf - xi)/len(Xs)
     aveCellY = (yf - yi)/len(Ys)
     while(abs(y0[0]) < xf and abs(y0[1]) < yf):
-        correction = RK45step(y0, y0[0], xf, h, maxerror, fun)
+        correction = RK5Step(y0, y0[0], xf, h, maxerror, fun)
         if(abs(correction[0][0]) <= 0.01*aveCellX and abs(correction[0][1]) <= 0.01*aveCellY):
+            break
+        elif(n > 1000):
             break
         y0 = y0 + correction[0]
         ys.append(y0[1])
@@ -96,8 +101,10 @@ def flowLine2D(xi, yi, Xs, Ys, maxerror, fun):
     h = abs(xf-xi)
     n = 0
     while(abs(y0[0]) < xf and abs(y0[1]) < yf):
-        correction = RK45step(y0, y0[0], xf, h, maxerror, fun)
+        correction = RK5Step(y0, y0[0], xf, h, maxerror, fun)
         if(abs(correction[0][0]) <= 0.01*aveCellX and abs(correction[0][1]) <= 0.01*aveCellY):
+            break
+        elif(n > 1000):
             break
         y0 = y0 - correction[0]
         ys.insert(0, y0[1])
@@ -133,40 +140,64 @@ def flowLine3D(xi, yi, zi, Xs, Ys, Zs, maxerror, fun, maxstep):
     xf = np.max(np.abs(Xs))
     yf = np.max(np.abs(Ys))
     zf = np.max(np.abs(Zs))
-    h = abs(xf-xi)/100
     zs.append(zi)
     xs.append(xi)
     ys.append(yi)
     n = 0
-    aveCellX = abs(xf - xi)/len(Xs)
-    aveCellY = abs(yf - yi)/len(Ys)
-    aveCellZ = abs(zf - zi)/len(Zs)
+    phiInitial = geo.cartesianToSpherical(y0, dim = 3)[1]
+    lastPhi = phiInitial
+    planetCoords = (1, np.pi, np.pi/2)
+    h = findH(y0, fun, Xs, Ys, Zs, 1)
     while(abs(y0[0]) <= abs(xf) and abs(y0[1]) <= abs(yf) and abs(y0[2]) <= abs(zf)):
-        correction = RK45step(y0, y0[0], xf, h, maxerror, fun)
-        if(abs(correction[0][0]) <= 0.0001*aveCellX and abs(correction[0][1]) <= 0.0001*aveCellY and abs(correction[0][2]) <= 0.0001*aveCellZ):
-            break
+        correction = RK5Step(y0, y0[0], xf, h, maxerror, fun)
         y0 = y0 + correction[0]
+        phi = geo.cartesianToSpherical(y0, dim = 3)[1]
         zs.append(y0[2])
         xs.append(y0[0])
         ys.append(y0[1])
-        h = correction[3]
-        if(h > maxstep):
-            h = maxstep
+        h = findH(y0, fun, Xs, Ys, Zs, 1)
+        if(h == 0 or h > 5):
+            #print(h, y0)
+            break
+        phi = geo.cartesianToSpherical(y0, dim = 3)[1]
+        if(n > 0):
+            if((phi <= phiInitial and lastPhi >= phiInitial) or (phi >= phiInitial and lastPhi <= phiInitial)):
+                #print(y0)
+                break
+        lastPhi = phi
         n = n+1
 
-    y0 = np.array([xi, yi, zi])
-    h = abs(xf-xi)/100
+    '''y0 = np.array([xi, yi, zi])
+    h = findH(y0, fun, Xs, Ys, Zs, 0)
     n = 0
-    while(abs(y0[0]) <= abs(xf) and abs(y0[1]) <= abs(yf) and abs(y0[2]) <= abs(zf)):
-        correction = RK45step(y0, y0[0], xf, h, maxerror, fun)
-        if(abs(correction[0][0]) <= 0.0001*aveCellX and abs(correction[0][1]) <= 0.0001*aveCellY and abs(correction[0][2]) <= 0.0001*aveCellZ):
+    lastPhi = phiInitial
+    h = findH(y0, fun, Xs, Ys, Zs, 0)
+    while(abs(y0[0]) <= abs(xf) or abs(y0[1]) <= abs(yf) or abs(y0[2]) <= abs(zf)):
+        correction = RK5Step(y0, y0[0], xf, h, maxerror, fun)
+        if(h == 0):
+            print(h, y0)
             break
         y0 = y0 - correction[0]
         zs.insert(0, y0[2])
         xs.insert(0, y0[0])
         ys.insert(0, y0[1])
-        h = correction[3]
-        if(h > maxstep):
-            h = maxstep
-        n = n+1
+        phi = geo.cartesianToSpherical(y0, dim = 3)[1]
+        if(n > 0):
+            if(n > 0):
+                if((phi <= phiInitial and lastPhi >= phiInitial) or (phi >= phiInitial and lastPhi <= phiInitial)):
+                    print(y0)
+                    break
+        lastPhi = phi
+        h = findH(y0, fun, Xs, Ys, Zs, 0)
+        n = n+1'''
     return (xs, ys, zs)
+
+def isHorseshoe(flow, planetCoords):
+    xc,yc,zc = geo.sphericalToCartesian(planetCoords, dim = 3)
+    if(len(flow[0]) <= 1):
+        return False
+    radii = [np.sqrt((flow[0][i] + xc)**2 + (flow[1][i] + yc)**2) for i in range(int(len(flow[0])))]
+    if(np.min(radii) <= planetCoords[0] and np.max(radii) >= planetCoords[0]):
+        return True
+    else:
+        return False

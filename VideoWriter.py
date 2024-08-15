@@ -11,8 +11,8 @@ if __name__ == '__main__':
     foldername = argv[4] if nargs >= 4 else "MassFlowVideoFrames"
     plottype = argv[5] if nargs >= 5 else "MassFlow"
     
-    readpath = "/home/afkirby/Analysis/Plots/" + simname + "/" + foldername + "/"
-    writepath = "/home/afkirby/Analysis/Plots/" + simname + "/"
+    readpath = "/home/afkirby/Plots/" + simname + "/" + foldername + "/"
+    writepath = "/home/afkirby/Plots/" + simname + "/"
     
     writer = imageio.get_writer(writepath + simname + plottype + ".mp4", fps = 1/frametime)
     for i in range(frames):
