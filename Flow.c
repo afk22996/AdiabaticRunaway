@@ -124,11 +124,11 @@ double **flowLine3D(double xi, double yi, double zi, double Xs[], double Ys[], d
 	double xf, yf, zf, h, phi, lastPhi, phiInitial;
 	double *correction;
 	double **sol = (double **)malloc(3*sizeof(double *));
-	int nleft, nright;
+	int n;
 
-	double *tempx = (double *)malloc((2*maxsteps + 1)*sizeof(double));
-	double *tempy = (double *)malloc((2*maxsteps + 1)*sizeof(double));
-	double *tempz = (double *)malloc((2*maxsteps + 1)*sizeof(double));
+	double *xs = (double *)malloc(maxsteps*sizeof(double)+1);
+	double *ys = (double *)malloc(maxsteps*sizeof(double)+1);
+	double *zs = (double *)malloc(maxsteps*sizeof(double)+1);
 
 
 	double y0[3] = {xi, yi, zi};
@@ -137,34 +137,34 @@ double **flowLine3D(double xi, double yi, double zi, double Xs[], double Ys[], d
 	yf = absmax(Ys, coordRes);
 	zf = absmax(Zs, coordRes);
 
-	tempx[maxsteps] = xi;
-	tempy[maxsteps] = yi;
-	tempz[maxsteps] = zi;
+	xs[0] = xi;
+	ys[0] = yi;
+	zs[0] = zi;
 
-	nright = 0;
+	n = 0;
 
 	phiInitial = cartesianToSpherical(y0, 3)[1];
 	lastPhi = phiInitial;
 	h = findH(y0, func, Xs, Ys, Zs, 1);
 	while((fabs(y0[0]) <= fabs(xf)) && (fabs(y0[1]) <= fabs(yf)) && (fabs(y0[2]) <= fabs(zf))){
-		if(h == 0){break;}
-		else if(nright > maxsteps){break;}
+		if(h == 0 || h > 5){break;}
+		else if(n > maxsteps){break;}
 		correction = RK5(func, y0, y0[0], h, 3);
 		for(int i = 0; i < 3; i++){
 			y0[i] += correction[i];
 		}
-		tempx[maxsteps + nright + 1] = y0[0];
-		tempy[maxsteps + nright + 1] = y0[1];
-		tempz[maxsteps + nright + 1] = y0[2];
+		xs[n + 1] = y0[0];
+		ys[n + 1] = y0[1];
+		zs[n + 1] = y0[2];
 		h = findH(y0, func, Xs, Ys, Zs, 1);
 		phi = cartesianToSpherical(y0, 3)[1];
-		if(nright > 0){
+		if(n > 0){
 			if((phi <= phiInitial && lastPhi >= phiInitial) || (phi >= phiInitial && lastPhi <= phiInitial)){break;}
 		}
 		lastPhi = phi;
-		nright += 1;
+		n += 1;
 	}
-	y0[0] = xi;
+	/*y0[0] = xi;
 	y0[1] = yi;
 	y0[2] = zi;
 	nleft = 0;
@@ -187,10 +187,10 @@ double **flowLine3D(double xi, double yi, double zi, double Xs[], double Ys[], d
 		}
 		lastPhi = phi;
 		nleft += 1;
-	}
-	sol[0] = tempx;
-	sol[1] = tempy;
-	sol[2] = tempz;
+	}*/
+	sol[0] = xs;
+	sol[1] = ys;
+	sol[2] = zs;
 	return sol;
 }
 
@@ -270,17 +270,13 @@ int main(void){
 	double *coordX = linspace(-xVals[xres-1] + 1, xVals[xres-1] + 1, 1000);
 	double *coordY = linspace(-xVals[xres-1], xVals[xres-1], 1000);
 	double *coordZ = linspace(-cos(zVals[0]), cos(zVals[0]), 1000);
-	double guess = 0.02;
-	double sCoords[3] = {1-guess, 2.0*M_PI/3.0, M_PI/2.0};
+	double guess = 0.01;
+	double corot = 0.9969806020039222;
+	double sCoords[3] = {corot-guess, 2.0*M_PI/3.0, zVals[zres-2]};
 	double *g = starToPlanet(sCoords, planetCoords);
-	double **flow = flowLine3D(g[0], g[1], g[2], coordX, coordY, coordZ, vel, 100);
-	for(int i = 0; i < 2001; i++){
-		if(flow[0][i] == 0 && flow[1][i] == 0 && flow[2][i] == 0){
-			continue;
-		}
-		else{
-			printf("%f %f %f\n", flow[0][i], flow[1][i], flow[2][i]);
-		}
+	double **flow = flowLine3D(g[0], g[1], g[2], coordX, coordY, coordZ, vel, 1);
+	for(int i = 0; i < 3; i++){
+		printf("%.15f %.15f %.15f\n", flow[0][i], flow[1][i], flow[2][i]);
 	}
 	/*double y0[2] = {0.1, 0.2};
 	double *s = RK5(fun, y0, 0, 0.1, 2);
