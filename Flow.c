@@ -68,7 +68,8 @@ double absmax(double vals[], int len){
 double absmin(double vals[], int len){
 	double min = 1.7e308;
 	for(int i = 0; i < len; i++){
-		if(fabs(vals[i]) < min){min = fabs(vals[i]);}
+		if(vals[i] < 0){vals[i] *= -1;}
+		if(vals[i] < min && vals[i] != 0){min = vals[i];}
 	}
 	return min;
 }
@@ -100,24 +101,38 @@ double findH(double *r, double* (*func)(double, double*), double *coordX, double
 
 	if(zPoints[0] == -1){return 0;}
 	if(zPoints[1] == -1){
-		if(z > M_PI/2.0){z = M_PI - z;}
-		zPoints = binSearch(coordZ, 0, zres, z, zres);
+		if(z > M_PI/2.0){z = M_PI - z;
+			zPoints = binSearch(coordZ, 0, coordRes, z, coordRes);
 		if(zPoints[0] == -1 || zPoints[1] == -1){return 0;}
+		}
+	else{
+		zPoints[0] = coordRes-1;
+		zPoints[1] = coordRes-1;
+	}
 	}
 	int xp = xPoints[direction];
 	int yp = yPoints[direction];
 	int zp = zPoints[direction];
 	double hx, hy, hz;
-	if(vx != 0){hx = fabs(coordX[xp] - x)/vx;}
-	else{hx = 1e9;}
-	if(vy != 0){hy = fabs(coordY[yp] - y)/vy;}
-	else{hy = 1e9;}
-	if(vz != 0){hz = fabs(coordZ[zp] - z)/vz;}
-	else{hz = 1e9;}
+	if(vx != 0){hx = (coordX[xp] - x)/vx;}
+	else{hx = 0;}
+	if(vy != 0){hy = (coordY[yp] - y)/vy;}
+	else{hy = 0;}
+	if(vz != 0){hz = (coordZ[zp] - z)/vz;}
+	else{hz = 0;}
+	if(hx < 0){hx *= -1;}
+	if(hy < 0){hy *= -1;}
+	if(hz < 0){hz *= -1;}
+	if(hx == 0 && hy == 0 && hz == 0){return 0;}
 	double hs[3] = {hx, hy, hz};
 	double h = absmin(hs, 3);
 	return h;
 	}
+
+double myabs(double x){
+	if(x < 0){return -x;}
+	else{return x;}
+}
 
 double **flowLine3D(double xi, double yi, double zi, double Xs[], double Ys[], double Zs[],
 	double* (*func)(double, double*), int maxsteps){
@@ -146,7 +161,7 @@ double **flowLine3D(double xi, double yi, double zi, double Xs[], double Ys[], d
 	phiInitial = cartesianToSpherical(y0, 3)[1];
 	lastPhi = phiInitial;
 	h = findH(y0, func, Xs, Ys, Zs, 1);
-	while((fabs(y0[0]) <= fabs(xf)) && (fabs(y0[1]) <= fabs(yf)) && (fabs(y0[2]) <= fabs(zf))){
+	while((myabs(y0[0]) <= myabs(xf)) && (myabs(y0[1]) <= myabs(yf)) && (myabs(y0[2]) <= myabs(zf))){
 		if(h == 0 || h > 5){break;}
 		else if(n > maxsteps){break;}
 		correction = RK5(func, y0, y0[0], h, 3);
@@ -191,6 +206,7 @@ double **flowLine3D(double xi, double yi, double zi, double Xs[], double Ys[], d
 	sol[0] = xs;
 	sol[1] = ys;
 	sol[2] = zs;
+	printf("%d\n", n);
 	return sol;
 }
 
@@ -274,9 +290,11 @@ int main(void){
 	double corot = 0.9969806020039222;
 	double sCoords[3] = {corot-guess, 2.0*M_PI/3.0, zVals[zres-2]};
 	double *g = starToPlanet(sCoords, planetCoords);
-	double **flow = flowLine3D(g[0], g[1], g[2], coordX, coordY, coordZ, vel, 1);
-	for(int i = 0; i < 3; i++){
-		printf("%.15f %.15f %.15f\n", flow[0][i], flow[1][i], flow[2][i]);
+	double **flow = flowLine3D(g[0], g[1], g[2], coordX, coordY, coordZ, vel, 10000);
+	for(int i = 0; i < 10001; i++){
+		if(flow[0][i] != 0 || flow[1][i] != 0 || flow[2][i] != 0){
+			printf("%.15f %.15f %.15f\n", flow[0][i], flow[1][i], flow[2][i]);
+		}
 	}
 	/*double y0[2] = {0.1, 0.2};
 	double *s = RK5(fun, y0, 0, 0.1, 2);

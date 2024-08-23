@@ -162,7 +162,7 @@ def flowLine3D(xi, yi, zi, Xs, Ys, Zs, maxerror, fun, maxstep):
         phi = geo.cartesianToSpherical(y0, dim = 3)[1]
         if(n > 0):
             if((phi <= phiInitial and lastPhi >= phiInitial) or (phi >= phiInitial and lastPhi <= phiInitial)):
-                #print(y0)
+                #print(phi, phiInitial)
                 break
         lastPhi = phi
         n = n+1
