@@ -89,6 +89,26 @@ def getDen2D(x, y, data, planetPosition):
     den = density(starCentric[0], starCentric[1], data)
     return den
 
+def getDen3D(x, y, z, data, planetPosition):
+    
+    #transforming input planet coordinates to cartesian
+    sphepolar = (x,y,z)
+    cartesian = geo.sphericalToCartesian(sphepolar, dim=3)
+    #print(cartesian)
+    
+    #transforming to star-centric spherical and interpolating
+    StarCentricCart = np.array(cartesian) - np.array(geo.sphericalToCartesian(planetPosition, dim = 3))
+    #print(StarCentricCart)
+    starCentric = geo.cartesianToSpherical(StarCentricCart, dim = 3)
+    #print(starCentric)
+    xVals = cell_center(data[1])
+    yVals = cell_center(data[2])
+    zVals = cell_center(data[3])
+    dens = data[4]
+    r = [x, y, z]
+    den = interpolate3DSpherical(xVals, yVals, zVals, dens, r)
+    return den
+
 def getVel2D(x, y, data, planetPosition, planetVel, corot = True, cart = False):
     rGrid = cell_center(data[1])
     phiGrid = cell_center(data[2])
