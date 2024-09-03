@@ -1,21 +1,4 @@
 import numpy as np
-
-def FFT(x):
-    N = len(x)
-    
-    if N == 1:
-        return x
-    else:
-        X_even = FFT(x[::2])
-        X_odd = FFT(x[1::2])
-        factor = \
-          np.exp(-2j*np.pi*np.arange(N)/ N)
-        
-        X = np.concatenate(\
-            [X_even+factor[:int(N/2)]*X_odd,
-             X_even+factor[int(N/2):]*X_odd])
-        return X
-
 '''Algorithm to numerically differentiate a function using the finite difference method'''
 def finDiff(fun, x0, h):
 	return (fun(x0-2*h) - 8*fun(x0-h) + 8*fun(x0 + h) - fun(x0+2*h))/(12*h)
@@ -139,7 +122,7 @@ def interpolate3DSpherical(xVals, yVals, zVals, data, r):
             if(zPoints[0] == -np.infty):
                 return 0
             if(zPoints[1] == np.infty):
-                return 0
+                zPoints = (-1,-1)
         else:
             zPoints = (-1, -1)
     if(zPoints[0] == -np.infty):
@@ -281,16 +264,8 @@ def linInterpolate(x, minPosition, maxPosition, minData, maxData):
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-
-    def gen_sig(sr):
-        ts = 1.0/sr
-        t = np.arange(0,1,ts)
-
-        freq = 1.
-        x = 3*np.sin(2*np.pi*freq*t)
-        return x
-    sr = 2048
-    plt.plot(gen_sig(sr))
-    X = gen_sig(sr)
-    plt.show()
+    def fun(x, y):
+        return np.array([-np.sin(y[0]), y[1]])
+    
+    y0 = [0.1, 0.2]
+    print(RK5step(y0, 0, 100, 0.1, 1e-8, fun))
