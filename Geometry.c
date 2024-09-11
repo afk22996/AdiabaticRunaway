@@ -66,9 +66,9 @@ double *sphericalToCartesianVelocity(double *coords, double *velocities, int dim
 		vtheta = 0;
 	}
 
-	vx = vr*sin(theta)*cos(phi) + r*vtheta*cos(theta)*cos(phi) - r*vphi*sin(theta)*sin(phi);
-	vy = vr*sin(theta)*sin(phi) + r*vtheta*cos(theta)*sin(phi) + r*vphi*sin(theta)*cos(phi);
-	vz = vr*cos(theta) - r*vtheta*sin(theta);
+	vx = vr*sin(theta)*cos(phi) + vtheta*cos(theta)*cos(phi) - vphi*sin(phi);
+	vy = vr*sin(theta)*sin(phi) + vtheta*cos(theta)*sin(phi) + vphi*cos(phi);
+	vz = vr*cos(theta) - vtheta*sin(theta);
 
 	cVels[0] = vx;
 	cVels[1] = vy;
@@ -101,11 +101,19 @@ double *cartesianToSphericalVelocity(double *coords, double *velocities, int dim
 		return sVels;
 	}
 	vr = (x*vx + y*vy + z*vz)/r;
-	vphi = (x*vy - y*vx)/(pow(x,2) + pow(y,2));
-	vtheta = (z*(x*vx + y*vy) - vz*(pow(x,2) + pow(y,2)))/(pow(r,2)*sqrt(pow(x,2) + pow(y,2)));
+	vphi = ((x*vy - y*vx)/(pow(x,2) + pow(y,2)))*r;
+	vtheta = ((z*(x*vx + y*vy) - vz*(pow(x,2) + pow(y,2)))/(pow(r,2)*sqrt(pow(x,2) + pow(y,2))))*r*sin(z/r);
 
 	sVels[0] = vr;
 	sVels[1] = vphi;
 	if(dim > 2){sVels[2] = vtheta;}
 	return sVels;
+}
+
+int main(void){
+	double coords[3] = {0.1, 0.2, 0.3};
+	double vels[3] = {-1, 0.32, 2.14};
+	double *tCoords = cartesianToSphericalVelocity(coords, vels, 3);
+	printf("%.15f, %.15f, %.15f\n", tCoords[0], tCoords[1], tCoords[2]);
+	return 0;
 }

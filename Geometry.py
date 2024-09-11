@@ -81,9 +81,9 @@ def sphericalToCartesianVelocity(coords, velocities, dim = 2):
         theta = np.pi/2
         vtheta = 0
 
-    vx = vr*np.sin(theta)*np.cos(phi) + r*vtheta*np.cos(theta)*np.cos(phi) - r*vphi*np.sin(theta)*np.sin(phi)
-    vy = vr*np.sin(theta)*np.sin(phi) + r*vtheta*np.cos(theta)*np.sin(phi) + r*vphi*np.sin(theta)*np.cos(phi)
-    vz = vr*np.cos(theta) - r*vtheta*np.sin(theta)
+    vx = vr*np.sin(theta)*np.cos(phi) + vtheta*np.cos(theta)*np.cos(phi) - vphi*np.sin(phi)
+    vy = vr*np.sin(theta)*np.sin(phi) + vtheta*np.cos(theta)*np.sin(phi) + vphi*np.cos(phi)
+    vz = vr*np.cos(theta) - vtheta*np.sin(theta)
     if(dim > 2):
         return(vx, vy, vz)
 
@@ -116,8 +116,8 @@ def cartesianToSphericalVelocity(coords, velocities, dim = 2):
     if(r == 0):
         return (0,0,0)
     vr = (x*vx + y*vy + z*vz)/r
-    vphi = (x*vy - y*vx)/(x**2 + y**2)
-    vtheta = (z*(x*vx + y*vy) - (x**2 + y**2)*vz)/(r**2*np.sqrt(x**2 + y**2))
+    vphi = ((x*vy - y*vx)/(x**2 + y**2))*r
+    vtheta = ((z*(x*vx + y*vy) - (x**2 + y**2)*vz)/(r**2*np.sqrt(x**2 + y**2)))*r*np.sin(z/r)
     if(dim > 2):
         return (vr, vphi, vtheta)
     return (vr, vphi)
