@@ -28,7 +28,7 @@ error - approximate error in the solution
 h - The step size used for this step
 hnew - Calculated ideal step size to maintain error budget while also prioritizing speed
 '''
-def RK5Step(y0, xi, xf, maxstep, maxerror, fun):
+def RK5Step(y0, xi, xf, maxstep, fun):
     h = maxstep
     x = xi
     #Calculating k's
@@ -51,6 +51,38 @@ h - interval over which the integral is to be evaluated
 '''
 def Simpson(func,h):
     return (h/3.0)*(np.sum(func)+np.sum(func[1:-1])+2.0*np.sum(func[1::2]))
+
+def doubleSimpson(f, xlim, ylim, nx, ny):
+    if nx % 2 == 0 or ny % 2 == 0:
+        raise ValueError("Both nx and ny must be odd for Simpson's rule.")
+
+    xi, xf = xlim
+    yi, yf = ylim
+
+    hx = (xf - xi) / (nx-1)
+    hy = (yf - yi) / (ny-1)
+
+    x = np.linspace(xi, xf, nx)
+    y = np.linspace(yi, yf, ny)
+
+    fs = np.zeros((nx, ny))
+    for i in range(nx):
+        for j in range(ny):
+            fs[i, j] = f(x[i], y[j])
+
+    weightsX = np.ones(nx)
+    weightsX[1:nx-1:2] = 4
+    weightsX[2:nx-2:2] = 2
+
+    weightsY = np.ones(ny)
+    weightsY[1:ny-1:2] = 4
+    weightsY[2:ny-2:2] = 2
+
+    weights = np.outer(weightsX, weightsY)
+
+    result = (hx * hy / 9) * np.sum(weights * fs)
+
+    return result
 
 '''Modified binary search which returns a tuple of the two indices between which the target value should lie between. If the value is in the list, the returned tuple contains duplicate values with both being the index of the target value. If the value is outside of the bounds of the list, a tuple containing either positive or negative infinities is used where the other value is unknown to commmunicate that uncertainty'''
 def binSearch(vals, left, right, target):

@@ -21,7 +21,6 @@ def getTau(data, planetPosition, rLimit = (0.0, 0.3), N = 100):
         tau[i] = Tau(data, planetPosition, radii[i], i*10+11)
     return (radii, tau)
 
-
 def getTemp(dat,planet_r,planet_phi,rad,N):
 
     azi = np.linspace(0.0,2.0*np.pi,num=N)
@@ -97,7 +96,7 @@ def getDen3D(x, y, z, data, planetPosition):
     #print(cartesian)
     
     #transforming to star-centric spherical and interpolating
-    StarCentricCart = np.array(cartesian) - np.array(geo.sphericalToCartesian(planetPosition, dim = 3))
+    StarCentricCart = np.array(cartesian) + np.array(geo.sphericalToCartesian(planetPosition, dim = 3))
     #print(StarCentricCart)
     starCentric = geo.cartesianToSpherical(StarCentricCart, dim = 3)
     #print(starCentric)
@@ -105,8 +104,7 @@ def getDen3D(x, y, z, data, planetPosition):
     yVals = cell_center(data[2])
     zVals = cell_center(data[3])
     dens = data[4]
-    r = [x, y, z]
-    den = interpolate3DSpherical(xVals, yVals, zVals, dens, r)
+    den = interpolate3DSpherical(xVals, yVals, zVals, dens, starCentric)
     return den
 
 def getVel2D(x, y, data, planetPosition, planetVel, corot = True, cart = False):
@@ -143,14 +141,31 @@ def getVel3D(coords, planetCoords, planetVel, data, corot = True, cart = False):
     starSphere = geo.cartesianToSpherical(starCart, dim = 3)
     vx = interpolate3DSpherical(xVals,yVals,zVals,xVel,starSphere)
     vy = interpolate3DSpherical(xVals,yVals,zVals,yVel,starSphere)
+    vz = interpolate3DSpherical(xVals,yVals,zVals,zVel,starSphere)
+    if(starSphere[2] > np.pi/2):
+        vz = -vz
+    if(abs(vx) < 1e-14 and abs(vy) < 1e-14 and abs(vz) < 1e-14):
+        return np.array([0,0,0])
     if(corot):
         vy = vy - starSphere[0]*np.sin(starSphere[2])
-    vz = np.sign(np.pi/2 - starSphere[2])*interpolate3DSpherical(xVals,yVals,zVals,zVel,starSphere)
     v = np.array([vx, vy, vz])
     if(cart):
         return np.array(geo.sphericalToCartesianVelocity(starSphere, v, dim = 3))
     else:
         return v
+
+def getvr2D(vr_star,vp_star,r_star,phi_star,r_planet,phi_planet):
+    polarvel = [vr_star, vp_star]
+    cartvel = geo.sphericalToCartesianVelocity((r_star, phi_star), polarvel, dim = 2)
+
+    vr_planet = cartvel[0]*np.cos(phi_planet) + cartvel[1]*np.sin(phi_planet)
+    return vr_planet
+
+def getvr3D(coords, planetCoords, planetVel, data):
+    #coords = np.array([coords[0], coords[2], coords[1]])
+    vel = np.array(getVel3D(coords, planetCoords, planetVel, data, corot = True, cart = True))
+    vr_planet = vel[0]*np.cos(coords[1])*np.sin(coords[2]) + vel[1]*np.sin(coords[1])*np.sin(coords[2]) + vel[2]*np.cos(coords[2])
+    return vr_planet
 
 def getMDot(data, rPlanet, phiPlanet, radius, N):
     angle = np.linspace(0, 2*np.pi, N)
@@ -165,6 +180,38 @@ def getMDot(data, rPlanet, phiPlanet, radius, N):
         vrPlanet[i] = getvr2D(vrStar, vthetaStar,polarStar[0], polarStar[1], rPlanet, phiPlanet)
     f = radius*den*vrPlanet
     return Simpson(f,angle[1]-angle[0])
+
+def getMDot3D(r, nt, nphi, planetCoords, planetVel, data):
+    def func(phi, theta):
+        coords = np.array([r, phi, theta])
+        vr = getvr3D(coords, planetCoords, planetVel, data)
+        den = getDen3D(r, phi, theta, data, planetCoords)
+        return -vr*den*(r**2)*np.sin(theta)
+    return 2*doubleSimpson(func, (0, 2*np.pi), (0, np.pi/2), nt, nphi)
+
+def getMDot3DPlus(r, nt, nphi, planetCoords, planetVel, data):
+    def func(phi, theta):
+        coords = np.array([r, phi, theta])
+        vr = getvr3D(coords, planetCoords, planetVel, data)
+        den = getDen3D(r, phi, theta, data, planetCoords)
+        mdot =  -vr*den*(r**2)*np.sin(theta)
+        if(mdot > 0):
+            return mdot
+        else:
+            return 0
+    return 2*doubleSimpson(func, (0, 2*np.pi), (0, np.pi/2), nt, nphi)
+
+def getMDot3DMinus(r, nt, nphi, planetCoords, planetVel, data):
+    def func(phi, theta):
+        coords = np.array([r, phi, theta])
+        vr = getvr3D(coords, planetCoords, planetVel, data)
+        den = getDen3D(r, phi, theta, data, planetCoords)
+        mdot =  -vr*den*(r**2)*np.sin(theta)
+        if(mdot < 0):
+            return mdot
+        else:
+            return 0
+    return 2*doubleSimpson(func, (0, 2*np.pi), (0, np.pi/2), nt, nphi)
 
 def findFg(i, j, data, planetPosition, planetMass):
     rf = data[1][i+1]
